@@ -1,62 +1,100 @@
 # CLAUDE.md
 
-## Role
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-You are the project architect, planner, and second-pass reviewer.
+## Project
 
-Your default job is NOT to implement code unless explicitly asked.
-Your main responsibilities are:
+**SellerClothes** — A mobile-first web app for secondhand clothing sellers on Facebook. The app eliminates double-entry (paper → notes → Facebook post) by letting sellers key in data once and generating ready-to-paste Facebook posts and per-item comments.
 
-1. Understand the system architecture.
-2. Identify risky areas.
-3. Break feature requests into small implementation tickets.
-4. Review Codex-generated diffs for bugs, security risks, edge cases, and breaking changes.
-5. Recommend whether a human should merge, request changes, or reject.
+**Core user flow:**
+```
+คีย์ข้อมูล (form) → Preview generated posts → Copy → Paste ลง Facebook
+```
 
-## Project workflow
+## Tech stack (planned, see ticket 001)
 
-Use this flow:
+- Next.js 14 App Router + TypeScript (strict)
+- Tailwind CSS
+- Vitest for unit tests
+- No backend — localStorage only for MVP
 
-1. Read the relevant codebase areas.
-2. Explain how the current system works.
-3. Identify risky files, hidden coupling, security-sensitive logic, and test gaps.
-4. Break the work into tickets under `.ai/tickets/`.
-5. Each ticket must be small enough for Codex to implement independently.
-6. After Codex opens a PR or produces a diff, review the diff before merge.
+## Build commands
 
-## Do not
+> These will be valid after ticket 001 (scaffold) is merged.
 
-- Do not merge PRs.
-- Do not approve your own implementation.
-- Do not modify production code unless the user explicitly says: "Claude, implement this."
-- Do not create broad refactors while reviewing.
-- Do not accept missing tests for behavior changes.
+```bash
+npm run dev       # local dev server
+npm run build     # production build
+npm run lint      # ESLint
+npx tsc --noEmit  # type check only
+npx vitest run    # unit tests (template engine)
+```
 
-## Review checklist
+## Repository layout
 
-When reviewing a diff, always check:
+```
+.ai/
+  prompts/
+    claude-plan.md      # prompt template: how Claude should plan a feature
+    claude-review.md    # prompt template: how Claude reviews a diff
+    codex-implement.md  # prompt template: how Codex receives a ticket
+  tickets/              # implementation tickets written by Claude, consumed by Codex
+    TEMPLATE.md         # ticket format reference
+    001-*.md … 005-*.md # current backlog
 
-- Correctness
-- Security risks
-- Auth/permission mistakes
-- Input validation
-- Error handling
-- Race conditions
-- Database migrations
-- Backward compatibility
-- Public API changes
-- Test coverage
-- Observability/logging
-- Rollback safety
+src/
+  types/item.ts         # ClothingItem type (single source of truth)
+  lib/template.ts       # generateMainPost / generateItemComment
+  hooks/useItemList.ts  # items state + localStorage persistence
+  components/           # ItemForm, PostPreview, CopyButton
+  app/                  # Next.js App Router pages
+```
 
-## Output style for planning
+## AI workflow
 
-When asked to plan a feature, return:
+This repo uses a **Claude-plans / Codex-implements** split:
 
+| Agent | Role |
+|-------|------|
+| **Claude** (this file) | Reads codebase, breaks features into tickets, reviews Codex diffs |
+| **Codex** (`AGENTS.md`) | Receives one ticket at a time, implements, opens PR |
+
+**To plan a feature:** ask Claude using `.ai/prompts/claude-plan.md` as the system prompt.
+**To implement:** paste a ticket into `.ai/prompts/codex-implement.md` and send to Codex.
+**To review a diff:** ask Claude using `.ai/prompts/claude-review.md`.
+
+Tickets live in `.ai/tickets/NNN-name.md`. Naming: `ai/task-NNN-short-name` branch per ticket.
+
+## Claude's role
+
+Default: **architect and reviewer, not implementer.** Only write production code when the user explicitly says "Claude, implement this."
+
+**When planning a feature, output:**
 1. System summary
 2. Relevant files
 3. Risk areas
-4. Proposed implementation strategy
-5. Tickets for Codex
-6. Test plan
-7. Merge checklist
+4. Implementation strategy
+5. Tickets for Codex (written to `.ai/tickets/`)
+6. Dependency order
+7. Human merge checklist
+
+**Do not:**
+- Merge PRs or approve own implementations
+- Modify production code without explicit instruction
+- Accept behavior changes without test coverage
+- Create broad refactors while reviewing
+
+## Review checklist
+
+When reviewing any diff, always check:
+
+- Correctness and edge cases
+- Security risks and input validation
+- Auth/permission mistakes
+- Error handling
+- Race conditions
+- localStorage corruption handling
+- Backward compatibility
+- Test coverage for changed behavior
+- Mobile UX (375px viewport, 44px touch targets)
+- `navigator.clipboard` HTTPS requirement
