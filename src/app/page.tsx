@@ -1,14 +1,21 @@
 "use client";
 
+import type { SyntheticEvent } from "react";
 import Link from "next/link";
 import { ItemForm } from "@/components/ItemForm";
 import { useItemList } from "@/hooks/useItemList";
 
 export default function Home() {
   const { items, addItem, removeItem, clearAll } = useItemList();
+  const hasItems = items.length > 0;
 
   function confirmClear() {
     if (window.confirm("ล้างรายการทั้งหมด?")) clearAll();
+  }
+
+  function blockDisabledLink(event: SyntheticEvent<HTMLAnchorElement>) {
+    if (hasItems) return;
+    event.preventDefault();
   }
 
   return (
@@ -19,9 +26,12 @@ export default function Home() {
           <p className="text-sm text-slate-600">รายการ {items.length} ชุด</p>
         </div>
         <Link
-          className={`min-h-11 rounded px-4 py-3 text-sm font-medium ${items.length ? "bg-slate-900 text-white" : "pointer-events-none bg-slate-200 text-slate-500"}`}
+          className={`min-h-11 rounded px-4 py-3 text-sm font-medium ${hasItems ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500"}`}
           href="/preview"
-          aria-disabled={!items.length}
+          aria-disabled={!hasItems}
+          onClick={blockDisabledLink}
+          onKeyDown={blockDisabledLink}
+          tabIndex={hasItems ? undefined : -1}
         >
           ดูโพสต์ →
         </Link>
@@ -29,7 +39,7 @@ export default function Home() {
 
       <ItemForm addItem={addItem} />
 
-      {items.length ? (
+      {hasItems ? (
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">รายการในล็อต</h2>

@@ -11,16 +11,28 @@ export function CopyButton({ text, label = "คัดลอก" }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
+    let didCopy = false;
+
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        didCopy = true;
+      } catch {
+        didCopy = false;
+      }
+    }
+
+    if (!didCopy) {
       const area = document.createElement("textarea");
       area.value = text;
       document.body.appendChild(area);
       area.select();
-      document.execCommand("copy");
+      didCopy = document.execCommand("copy");
       area.remove();
     }
+
+    if (!didCopy) return;
+
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }
